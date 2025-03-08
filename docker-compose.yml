@@ -1,0 +1,9 @@
+version: '3'
+services:
+  web:
+    build: .
+    ports:
+      - "8080:80"
+    environment:
+      - OPENSEARCH_URL=http://127.0.0.1:5601/app/discover#/doc/018b8760-b0b3-11ee-a5ce-2132973566d3/documents?id=
+      - API_URL=http://127.0.0.1:8085/api/v1
