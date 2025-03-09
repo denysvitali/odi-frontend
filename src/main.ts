@@ -41,7 +41,7 @@ declare global {
 
 // Load settings
 const loadSettings = async() => {
-    window._settings = await fetch('/settings.json').json();
+    window._settings = await fetch('/settings.json').await().json();
 };
 
 app.use(createPinia())
