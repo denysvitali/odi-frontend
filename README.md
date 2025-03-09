@@ -32,10 +32,10 @@ This will start the frontend server and connect it to the backend.
 
 2. Install dependencies:
     ```bash
-    npm install
+    yarn install
     ```
 
 3. Start the development server:
     ```bash
-    npm run dev
+    yarn dev
     ```
