@@ -41,14 +41,7 @@ declare global {
 
 // Load settings
 const loadSettings = async() => {
-    let response;
-    if (window.location.hostname === 'odi.denv.it') {
-        // Mock on GitHub pages
-        response = await fetch('/settings-mock.json');
-    } else {
-        response = await fetch('/settings.json');
-    }
-    window._settings = await response.json();
+    window._settings = await fetch('/settings.json').json();
 };
 
 app.use(createPinia())
