@@ -10,6 +10,7 @@ const currentDocuments = ref<Document[]>([]);
 const documents = ref<Document[]>([]);
 const BASE_URL = window._settings.apiUrl;
 const OPENSEARCH_URL = window._settings.opensearchUrl;
+const loading = ref<boolean>(false);
 
 let scrollId: String | null = null;
 
@@ -26,6 +27,7 @@ const openOpensearchDocument = (documentId: string) => {
 }
 
 const loadDocuments = async () => {
+  loading.value = true;
   let url = `${BASE_URL}/documents`;
   if(scrollId != null) {
     url += `?scroll_id=${scrollId}`;
@@ -44,6 +46,7 @@ const loadDocuments = async () => {
   if(data._scroll_id != undefined){
     scrollId = data._scroll_id;
   }
+  loading.value = false;
 }
 
 const handleScroll = () => {
@@ -67,6 +70,19 @@ onUnmounted(() => {
 <template>
   <h2>Last indexed documents</h2>
   <div class="document-list">
+    <v-tooltip bottom>
+      <template v-slot:activator="{ on, attrs }">
+        <v-icon v-bind="attrs" v-on="on">
+          mdi-help-circle
+        </v-icon>
+      </template>
+      <span>This section displays the last indexed documents.</span>
+    </v-tooltip>
+    <v-progress-circular
+        v-if="loading"
+        indeterminate
+        color="primary"
+    ></v-progress-circular>
     <div class="document-container">
       <v-card
           v-for="document in documents"
@@ -74,13 +90,20 @@ onUnmounted(() => {
           class="document"
           max-width="500"
       >
-        <img
-            alt="Document thumbnail"
-            class="document-thumbnail"
-            :src="BASE_URL + '/files/' + documentPath(document._id)"
-            @click="openDocument(document._id)"
-            height="600"
-        />
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on, attrs }">
+            <img
+                alt="Document thumbnail"
+                class="document-thumbnail"
+                :src="BASE_URL + '/files/' + documentPath(document._id)"
+                @click="openDocument(document._id)"
+                height="600"
+                v-bind="attrs"
+                v-on="on"
+            />
+          </template>
+          <span>Click to open the document.</span>
+        </v-tooltip>
         <v-card-title>{{ document._source.company?.name }}</v-card-title>
         <v-card-text
             v-for="highlight in document.highlight?.text"

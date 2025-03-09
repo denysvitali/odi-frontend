@@ -39,6 +39,7 @@ const searchTerm = ref<string>('');
 const BASE_URL = window._settings.apiUrl;
 const OPENSEARCH_URL = window._settings.opensearchUrl;
 const resultsFound = ref<number>(0);
+const loading = ref<boolean>(false);
 
 const documentPath = (documentId: string): string => {
   return documentId.split('_').join('/');
@@ -53,6 +54,7 @@ const openOpensearchDocument = (documentId: string) => {
 }
 
 const doSearch = async (term: string) => {
+  loading.value = true;
   let req = new Request(`${BASE_URL}/search`, {
     method: 'POST',
     body: JSON.stringify({
@@ -75,6 +77,8 @@ const doSearch = async (term: string) => {
   } catch (err) {
     currentDocuments.value = documents.value;
     console.error(err);
+  } finally {
+    loading.value = false;
   }
 }
 
@@ -94,17 +98,41 @@ watch(searchTerm, async (newValue, oldValue) => {
 <template>
   <div class="document-list">
     <div class="search-container">
+      <v-tooltip bottom>
+        <template v-slot:activator="{ on, attrs }">
+          <v-icon v-bind="attrs" v-on="on">
+            mdi-help-circle
+          </v-icon>
+        </template>
+        <span>Enter a search term to find documents.</span>
+      </v-tooltip>
       <v-text-field
           v-model="searchTerm"
           @keydown="handleKeypress"
           label="Query"
           clearable
-      />
+      >
+        <template v-slot:append-outer>
+          <v-tooltip bottom>
+            <template v-slot:activator="{ on, attrs }">
+              <v-icon v-bind="attrs" v-on="on">
+                mdi-help-circle
+              </v-icon>
+            </template>
+            <span>Enter a search term to find documents.</span>
+          </v-tooltip>
+        </template>
+      </v-text-field>
     </div>
     <p class="error" v-if="error != ''">
       {{ error }}
     </p>
     <p>{{ resultsFound }} results</p>
+    <v-progress-circular
+        v-if="loading"
+        indeterminate
+        color="primary"
+    ></v-progress-circular>
     <div class="document-container">
       <v-card
           v-for="document in currentDocuments"
@@ -112,13 +140,20 @@ watch(searchTerm, async (newValue, oldValue) => {
           class="document"
           max-width="500"
       >
-        <img
-            alt="Document thumbnail"
-            class="document-thumbnail"
-            :src="BASE_URL + '/files/' + documentPath(document._id)"
-            @click="openDocument(document._id)"
-            height="600"
-        />
+        <v-tooltip bottom>
+          <template v-slot:activator="{ on, attrs }">
+            <img
+                alt="Document thumbnail"
+                class="document-thumbnail"
+                :src="BASE_URL + '/files/' + documentPath(document._id)"
+                @click="openDocument(document._id)"
+                height="600"
+                v-bind="attrs"
+                v-on="on"
+            />
+          </template>
+          <span>Click to open the document.</span>
+        </v-tooltip>
         <v-card-title>{{ document._source.company?.name }}</v-card-title>
         <v-card-text
             v-for="highlight in document.highlight?.text"
