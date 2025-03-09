@@ -31,4 +31,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/odi-frontend:latest
+          tags: ghcr.io/denysvitali/odi-frontend:latest
