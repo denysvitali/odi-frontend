@@ -1,40 +1,50 @@
 <script setup lang="ts">
-import {RouterView} from 'vue-router'
-
-const routes = [
-  {path: '/', icon: 'home', title: 'Home'},
-  {path: '/documents', icon: 'file-document', title: 'Documents'},
-];
+import { RouterView } from 'vue-router'
+import AppHeader from '@/components/layout/AppHeader.vue'
+import AppSidebar from '@/components/layout/AppSidebar.vue'
 </script>
 
 <template>
-  <v-layout>
-    <v-app-bar>
-      <v-app-bar-title>ODI</v-app-bar-title>
-    </v-app-bar>
-    <v-navigation-drawer>
-      <v-list>
-        <v-list-item
-            v-for="route in routes"
-            :key="route.title"
-            :to="route.path"
-            :title="route.title"
-            :prepend-icon="'mdi-' + route.icon"
-        >
-        </v-list-item>
-      </v-list>
-    </v-navigation-drawer>
-    <v-main class="main">
-      <RouterView/>
-    </v-main>
-  </v-layout>
+  <div class="min-h-screen bg-background text-foreground">
+    <AppHeader />
 
+    <div class="flex">
+      <AppSidebar />
+
+      <main class="flex-1 lg:ml-64">
+        <div class="p-4 lg:p-8">
+          <RouterView v-slot="{ Component }">
+            <Transition
+              name="page"
+              mode="out-in"
+              enter-active-class="transition-all duration-300 ease-out"
+              leave-active-class="transition-all duration-200 ease-in"
+              enter-from-class="opacity-0 translate-y-2"
+              leave-to-class="opacity-0 -translate-y-2"
+            >
+              <component :is="Component" />
+            </Transition>
+          </RouterView>
+        </div>
+      </main>
+    </div>
+  </div>
 </template>
 
-<style lang="scss" scoped>
-.main {
-  $margin: 24px;
-  width: calc(100% - $margin*2);
-  margin: $margin $margin 0 $margin;
+<style>
+/* Global transitions */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 </style>

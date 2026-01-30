@@ -1,175 +1,122 @@
-<script lang="ts" setup>
-import {ref, watch} from 'vue';
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { RefreshCw } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
+import DocumentGrid from '@/components/documents/DocumentGrid.vue'
+import DocumentDetailSheet from '@/components/documents/DocumentDetailSheet.vue'
+import PageContainer from '@/components/layout/PageContainer.vue'
+import { useDocuments } from '@/composables/useDocuments'
+import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
+import type { Document } from '@/types/documents'
 
-import type { Document, SearchResult } from '@/types/documents';
-import { onMounted } from 'vue';
-import { onUnmounted } from 'vue';
+const {
+  documents,
+  loading,
+  loadingMore,
+  error,
+  total,
+  hasMore,
+  loadDocuments,
+  loadMore,
+  refresh
+} = useDocuments({ initialPageSize: 12 })
 
-const error = ref<string>("");
-const currentDocuments = ref<Document[]>([]);
-const documents = ref<Document[]>([]);
-const BASE_URL = window._settings.apiUrl;
-const OPENSEARCH_URL = window._settings.opensearchUrl;
+const opensearchUrl = ref('')
+const selectedDocument = ref<Document | null>(null)
+const sheetOpen = ref(false)
 
-let scrollId: String | null = null;
-
-const documentPath = (documentId: string): string => {
-  return documentId.split('_').join('/');
+const handleSelectDocument = (doc: Document) => {
+  selectedDocument.value = doc
+  sheetOpen.value = true
 }
 
-const openDocument = (documentId: string) => {
-  window.open(`${BASE_URL}/files/${documentPath(documentId)}`, '_blank');
-}
-
-const openOpensearchDocument = (documentId: string) => {
-  window.open(`${OPENSEARCH_URL}${documentId}`, '_blank');
-}
-
-const loadDocuments = async () => {
-  let url = `${BASE_URL}/documents`;
-  if(scrollId != null) {
-    url += `?scroll_id=${scrollId}`;
+// Set up infinite scroll
+const { targetRef } = useInfiniteScroll(() => {
+  if (!loading.value && !loadingMore.value && hasMore.value) {
+    loadMore()
   }
-  let req = await fetch(url);
-  if (!req.ok) {
-    error.value = "Failed to load documents";
-    return;
-  }
-  const data: SearchResult<Document> = await req.json();
-  if(data.hits == undefined) {
-    error.value = "No documents found";
-    return;
-  }
-  documents.value.push(...data.hits.hits);
-  if(data._scroll_id != undefined){
-    scrollId = data._scroll_id;
-  }
-}
-
-const handleScroll = () => {
-  // If we've reached the bottom, load more documents
-  if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight) {
-    console.log("Reached bottom");
-    loadDocuments();
-  }
-}
+})
 
 onMounted(() => {
-  addEventListener('scroll', handleScroll);
-  loadDocuments();
-});
-
-onUnmounted(() => {
-  removeEventListener('scroll', handleScroll);
-});
+  loadDocuments()
+  if (window._settings?.opensearchUrl) {
+    opensearchUrl.value = window._settings.opensearchUrl
+  }
+})
 </script>
 
 <template>
-  <h2>Last indexed documents</h2>
-  <div class="document-list">
-    <div class="document-container">
-      <v-card
-          v-for="document in documents"
-          :key="document._id"
-          class="document"
-          max-width="500"
-      >
-        <img
-            alt="Document thumbnail"
-            class="document-thumbnail"
-            :src="BASE_URL + '/files/' + documentPath(document._id)"
-            @click="openDocument(document._id)"
-            height="600"
-        />
-        <v-card-title>{{ document._source.company?.name }}</v-card-title>
-        <v-card-text
-            v-for="highlight in document.highlight?.text"
-            :key="highlight"
-            class="highlighted"
-            v-html="highlight"
+  <PageContainer>
+    <div class="space-y-6">
+      <!-- Header -->
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight">Documents</h1>
+          <p class="text-muted-foreground">
+            Browse all indexed documents
+          </p>
+        </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          :disabled="loading"
+          @click="refresh"
         >
-        </v-card-text>
-        <v-card-text>{{ document._source.text.substring(0, 200) }}</v-card-text>
-        <v-card-actions>
-          <v-btn
-              prepend-icon="mdi-file-document"
-              @click="openOpensearchDocument(document._id)"
-          >View in OpenSearch
-          </v-btn>
-        </v-card-actions>
-      </v-card>
+          <RefreshCw class="mr-2 h-4 w-4" :class="{ 'animate-spin': loading }" />
+          Refresh
+        </Button>
+      </div>
+
+      <!-- Error State -->
+      <div
+        v-if="error"
+        class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-center text-destructive"
+      >
+        <p>{{ error }}</p>
+        <Button
+          variant="outline"
+          size="sm"
+          class="mt-2"
+          @click="refresh"
+        >
+          Try Again
+        </Button>
+      </div>
+
+      <!-- Results Counter -->
+      <div v-if="!error" class="flex items-center justify-between">
+        <div class="text-sm text-muted-foreground">
+          <span v-if="loading" class="flex items-center gap-2">
+            <div class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            Loading documents...
+          </span>
+          <span v-else-if="total > 0">
+            {{ total.toLocaleString() }} document{{ total !== 1 ? 's' : '' }} indexed
+          </span>
+          <span v-else>No documents found</span>
+        </div>
+      </div>
+
+      <!-- Document Grid -->
+      <DocumentGrid
+        :documents="documents"
+        :loading="loading"
+        :loading-more="loadingMore"
+        :has-more="hasMore"
+        :opensearch-url="opensearchUrl"
+        @load-more="loadMore"
+        @select-document="handleSelectDocument"
+      />
+
+      <!-- Infinite Scroll Trigger -->
+      <div ref="targetRef" class="h-4" />
     </div>
-  </div>
+
+    <!-- Document Detail Sheet -->
+    <DocumentDetailSheet
+      v-model:open="sheetOpen"
+      :document="selectedDocument"
+    />
+  </PageContainer>
 </template>
-
-<style lang="scss" scoped>
-.document-list {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 1rem;
-  gap: 1rem;
-}
-
-.document-thumbnail {
-  cursor: pointer;
-}
-
-.search-container {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-
-  input {
-    padding: 10px;
-    min-width: 50vw;
-  }
-}
-
-.document-container {
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 1rem;
-}
-
-.document {
-  color: #000;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background-color: #fff;
-  border-radius: 4px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-
-  img.thumbnail {
-    cursor: pointer;
-    width: 100%;
-    height: 500px;
-    object-fit: contain;
-  }
-
-  div.company-name {
-    font-weight: bold;
-  }
-
-  .ocr-text {
-    display: block;
-    overflow: hidden;
-    text-align: left;
-    height: 6rem;
-    width: 100%;
-    text-overflow: ellipsis;
-  }
-}
-</style>
-
-<style lang="scss">
-.highlighted {
-  em {
-    background-color: #ffee6a;
-  }
-}
-</style>

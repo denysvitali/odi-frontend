@@ -1,213 +1,122 @@
-<script lang="ts" setup>
-import {ref, watch} from 'vue';
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { FileText } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
+import SearchInput from '@/components/search/SearchInput.vue'
+import ResultsCounter from '@/components/search/ResultsCounter.vue'
+import DocumentGrid from '@/components/documents/DocumentGrid.vue'
+import DocumentDetailSheet from '@/components/documents/DocumentDetailSheet.vue'
+import PageContainer from '@/components/layout/PageContainer.vue'
+import { useSearch } from '@/composables/useSearch'
+import { useDocumentStore } from '@/stores/documents'
+import type { Document } from '@/types/documents'
 
-import type { Document, SearchResult } from '@/types/documents';
+const { searchTerm, results, loading, total, hasSearched, search } = useSearch({
+  debounceMs: 300
+})
 
-const error = ref<string>("");
-const currentDocuments = ref<Document[]>([
-  {
-    _id: "e1867d8f-bd48-4d1c-8ebe-3c3c4aa3016a_10",
-    _source: {
-      text: "This is a test document",
-      company: {
-        name: "Test Company"
-      }
-    },
-    "highlight": {
-      "text": [
-        "This is a <em>test</em> document"
-      ]
-    }
-  },
-  {
-    _id: "e1867d8f-bd48-4d1c-8ebe-3c3c4aa3016a_10",
-    _source: {
-      text: "This is a test document",
-      company: {
-        name: "Test Company"
-      }
-    },
-    "highlight": {
-      "text": [
-        "This is a <em>test</em> document"
-      ]
-    }
-  }
-]);
-const documents = ref<Document[]>([]);
-const searchTerm = ref<string>('');
-const BASE_URL = window._settings.apiUrl;
-const OPENSEARCH_URL = window._settings.opensearchUrl;
-const resultsFound = ref<number>(0);
+const store = useDocumentStore()
+const opensearchUrl = ref('')
+const selectedDocument = ref<Document | null>(null)
+const sheetOpen = ref(false)
 
-const documentPath = (documentId: string): string => {
-  return documentId.split('_').join('/');
+const handleSelectDocument = (doc: Document) => {
+  selectedDocument.value = doc
+  sheetOpen.value = true
 }
 
-const openDocument = (documentId: string) => {
-  window.open(`${BASE_URL}/files/${documentPath(documentId)}`, '_blank');
-}
-
-const openOpensearchDocument = (documentId: string) => {
-  window.open(`${OPENSEARCH_URL}${documentId}`, '_blank');
-}
-
-const doSearch = async (term: string) => {
-  let req = new Request(`${BASE_URL}/search`, {
-    method: 'POST',
-    body: JSON.stringify({
-      searchTerm: term,
-    }),
-  });
-
-  try {
-    let res = await fetch(req);
-    if (res.status != 200) {
-      error.value = res.statusText;
-      return
-    }
-
-    error.value = ''
-
-    let json = await res.json() as SearchResult<Document>;
-    resultsFound.value = json.hits?.total.value || 0;
-    currentDocuments.value = json.hits!!.hits;
-  } catch (err) {
-    currentDocuments.value = documents.value;
-    console.error(err);
+const handleSearch = () => {
+  if (searchTerm.value.trim()) {
+    search(searchTerm.value)
+    store.addRecentSearch(searchTerm.value)
   }
 }
 
-const handleKeypress = (event: KeyboardEvent) => {
-  if (event.key === 'Enter') {
-    doSearch(searchTerm.value);
+onMounted(() => {
+  store.loadRecentSearches()
+  if (window._settings?.opensearchUrl) {
+    opensearchUrl.value = window._settings.opensearchUrl
   }
-}
-
-watch(searchTerm, async (newValue, oldValue) => {
-  if (newValue.length < 3) {
-    return
-  }
-});
+})
 </script>
 
 <template>
-  <div class="document-list">
-    <div class="search-container">
-      <v-text-field
-          v-model="searchTerm"
-          @keydown="handleKeypress"
-          label="Query"
-          clearable
+  <PageContainer
+    :class="[
+      'transition-all duration-500 ease-out',
+      hasSearched ? 'pt-4' : 'pt-[20vh]'
+    ]"
+  >
+    <!-- Hero Section -->
+    <div class="mb-8 text-center">
+      <div
+        v-if="!hasSearched"
+        class="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary"
+      >
+        <FileText class="h-8 w-8" />
+      </div>
+
+      <h1
+        v-if="!hasSearched"
+        class="mb-2 text-3xl font-bold tracking-tight sm:text-4xl"
+      >
+        Search your documents
+      </h1>
+
+      <p
+        v-if="!hasSearched"
+        class="mb-8 text-muted-foreground"
+      >
+        Find what you're looking for across all your indexed documents
+      </p>
+
+      <!-- Search Input -->
+      <SearchInput
+        v-model="searchTerm"
+        class="mx-auto max-w-2xl"
+        @submit="handleSearch"
+      />
+
+      <!-- Recent Searches -->
+      <div
+        v-if="!hasSearched && store.recentSearches.length > 0"
+        class="mt-6"
+      >
+        <p class="mb-3 text-sm text-muted-foreground">Recent searches</p>
+        <div class="flex flex-wrap justify-center gap-2">
+          <Button
+            v-for="term in store.recentSearches.slice(0, 5)"
+            :key="term"
+            variant="secondary"
+            size="sm"
+            class="text-muted-foreground"
+            @click="searchTerm = term; handleSearch()"
+          >
+            {{ term }}
+          </Button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <div v-if="hasSearched" class="space-y-6">
+      <div class="flex items-center justify-between">
+        <ResultsCounter :count="results.length" :total="total" :loading="loading" />
+      </div>
+
+      <DocumentGrid
+        :documents="results"
+        :loading="loading"
+        :search-term="searchTerm"
+        :opensearch-url="opensearchUrl"
+        @select-document="handleSelectDocument"
       />
     </div>
-    <p class="error" v-if="error != ''">
-      {{ error }}
-    </p>
-    <p>{{ resultsFound }} results</p>
-    <div class="document-container">
-      <v-card
-          v-for="document in currentDocuments"
-          :key="document._id"
-          class="document"
-          max-width="500"
-      >
-        <img
-            alt="Document thumbnail"
-            class="document-thumbnail"
-            :src="BASE_URL + '/files/' + documentPath(document._id)"
-            @click="openDocument(document._id)"
-            height="600"
-        />
-        <v-card-title>{{ document._source.company?.name }}</v-card-title>
-        <v-card-text
-            v-for="highlight in document.highlight?.text"
-            :key="highlight"
-            class="highlighted"
-            v-html="highlight"
-        >
-        </v-card-text>
-        <v-card-text>{{ document._source.text.substring(0, 200) }}</v-card-text>
-        <v-card-actions>
-          <v-btn
-              prepend-icon="mdi-file-document"
-              @click="openOpensearchDocument(document._id)"
-          >View in OpenSearch
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </div>
-  </div>
+
+    <!-- Document Detail Sheet -->
+    <DocumentDetailSheet
+      v-model:open="sheetOpen"
+      :document="selectedDocument"
+    />
+  </PageContainer>
 </template>
-
-<style lang="scss" scoped>
-.document-list {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 1rem;
-  gap: 1rem;
-}
-
-.document-thumbnail {
-  cursor: pointer;
-}
-
-.search-container {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-
-  input {
-    padding: 10px;
-    min-width: 50vw;
-  }
-}
-
-.document-container {
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 1rem;
-}
-
-.document {
-  color: #000;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background-color: #fff;
-  border-radius: 4px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-
-  img.thumbnail {
-    cursor: pointer;
-    width: 100%;
-    height: 500px;
-    object-fit: contain;
-  }
-
-  div.company-name {
-    font-weight: bold;
-  }
-
-  .ocr-text {
-    display: block;
-    overflow: hidden;
-    text-align: left;
-    height: 6rem;
-    width: 100%;
-    text-overflow: ellipsis;
-  }
-}
-</style>
-
-<style lang="scss">
-.highlighted {
-  em {
-    background-color: #ffee6a;
-  }
-}
-</style>

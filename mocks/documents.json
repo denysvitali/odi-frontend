@@ -1,0 +1,92 @@
+{
+  "hits": [
+    {
+      "_index": "documents",
+      "_id": "b61bc264-2d27-42e5-ac0d-2866c1ee1dee_2",
+      "_version": 0,
+      "_seq_no": 0,
+      "_primary_term": 0,
+      "found": false,
+      "_source": {
+        "date": "2025-01-25T00:00:00Z",
+        "text": "This is the second document\nIt contains some text\n",
+        "additionalBarCodes": null,
+        "company": {
+          "legalName": "Zürich Lebensversicherungs-Gesellschaft AG",
+          "name": "Zurigo Compagnia di Assicurazioni sulla Vita SA",
+          "uri": "https://register.ld.admin.ch/zefix/company/324847",
+          "locality": "Zürich",
+          "type": "",
+          "address": ""
+        },
+        "companies": [
+          {
+            "legalName": "Zürich Lebensversicherungs-Gesellschaft AG",
+            "name": "Zurigo Compagnia di Assicurazioni sulla Vita SA",
+            "uri": "https://register.ld.admin.ch/zefix/company/324847",
+            "locality": "Zürich",
+            "type": "",
+            "address": ""
+          }
+        ],
+        "dates": [
+          "2025-01-25T00:00:00Z"
+        ],
+        "indexedAt": "2025-03-03T06:00:00Z",
+        "scanId": "b61bc264-2d27-42e5-ac0d-2866c1ee1dee",
+        "sequenceId": 2
+      }
+    },
+
+    {
+      "_index": "documents",
+      "_id": "b61bc264-2d27-42e5-ac0d-2866c1ee1dee_1",
+      "_version": 0,
+      "_seq_no": 0,
+      "_primary_term": 0,
+      "found": false,
+      "_source": {
+        "date": "2025-01-20T00:00:00Z",
+        "text": "This is the first document\nIt contains some text\n",
+        "additionalBarCodes": null,
+        "company": {
+          "legalName": "UBS Switzerland AG",
+          "name": "UBS Switzerland AG",
+          "uri": "https://register.ld.admin.ch/zefix/company/1193526",
+          "locality": "Zürich",
+          "type": "",
+          "address": ""
+        },
+        "companies": [
+          {
+            "legalName": "UBS Switzerland AG",
+            "name": "UBS Switzerland AG",
+            "uri": "https://register.ld.admin.ch/zefix/company/1193526",
+            "locality": "Zürich",
+            "type": "",
+            "address": ""
+          },
+          {
+            "company": {
+              "legalName": "Zürich Lebensversicherungs-Gesellschaft AG",
+              "name": "Zurigo Compagnia di Assicurazioni sulla Vita SA",
+              "uri": "https://register.ld.admin.ch/zefix/company/324847",
+              "locality": "Zürich",
+              "type": "",
+              "address": ""
+            }
+          }
+        ],
+        "dates": [
+          "2025-01-21T00:00:00Z",
+          "2025-01-20T00:00:00Z",
+          "1990-01-01T00:00:00Z"
+        ],
+        "indexedAt": "2025-03-03T05:00:00Z",
+        "scanId": "b61bc264-2d27-42e5-ac0d-2866c1ee1dee",
+        "sequenceId": 1
+      }
+    }
+  ],
+  "_scroll_id": "foo"
+}
